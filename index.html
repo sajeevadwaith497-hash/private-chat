@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Chat</title>
+    <!-- വെബ്സോക്കറ്റും എൻക്രിപ്ഷൻ ടൂളും ലോഡ് ചെയ്യുന്നു -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #222; color: white; padding: 20px; }
+        .container { max-width: 400px; margin: auto; background: #333; padding: 20px; border-radius: 10px; }
+        input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; border: none; }
+        button { background: #008cba; color: white; font-weight: bold; cursor: pointer; }
+        #chat-box { height: 300px; background: #111; overflow-y: scroll; padding: 10px; margin-top: 10px; border-radius: 5px; }
+        .msg { margin-bottom: 10px; padding: 8px; border-radius: 5px; background: #444; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center;">MOLUTTYANADHU💖</h2>
+    
+    <div id="setup-area">
+        <input type="text" id="room" placeholder="room name">
+        <input type="password" id="secret" placeholder="password">
+        <button onclick="joinChat()">MY HEART</button>
+    </div>
+
+    <div id="chat-area" style="display: none;">
+        <div id="chat-box"></div>
+        <input type="text" id="message" placeholder="LOVE CHAT">
+        <button onclick="sendMessage()">send heart</button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    let room = "";
+    let secret = "";
+
+    function joinChat() {
+        room = document.getElementById("room").value;
+        secret = document.getElementById("secret").value;
+        
+        if(room && secret) {
+            socket.emit('join', {room: room});
+            document.getElementById("setup-area").style.display = "none";
+            document.getElementById("chat-area").style.display = "block";
+        } else {
+            alert("റൂം പേരും പാസ്‌വേഡും നിർബന്ധമാണ്!");
+        }
+    }
+
+    function sendMessage() {
+        let msg = document.getElementById("message").value;
+        if(msg) {
+            // മെസ്സേജ് പാസ്‌വേഡ് ഉപയോഗിച്ച് എൻക്രിപ്റ്റ് ചെയ്യുന്നു
+            let encryptedMsg = CryptoJS.AES.encrypt(msg, secret).toString();
+            socket.emit('message', {room: room, msg: encryptedMsg});
+            document.getElementById("message").value = "";
+        }
+    }
+
+    socket.on('message', function(encryptedMsg) {
+        try {
+            // ലഭിച്ച മെസ്സേജ് ഡീക്രിപ്റ്റ് ചെയ്യുന്നു
+            let bytes = CryptoJS.AES.decrypt(encryptedMsg, secret);
+            let decryptedMsg = bytes.toString(CryptoJS.enc.Utf8);
+            
+            // പാസ്‌വേഡ് തെറ്റാണെങ്കിൽ ഡീക്രിപ്റ്റ് ആകില്ല
+            if(!decryptedMsg) throw "Error";
+
+            let chatBox = document.getElementById("chat-box");
+            chatBox.innerHTML += `<div class='msg'>${decryptedMsg}</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        } catch(e) {
+            console.log("എൻക്രിപ്റ്റഡ് ഡാറ്റ ഡീക്രിപ്റ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല.");
+        }
+    });
+</script>
+
+</body>
+</html>
